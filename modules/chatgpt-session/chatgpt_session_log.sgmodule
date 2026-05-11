@@ -1,10 +1,9 @@
-#!name=ChatGPT AccessToken 捕获
-#!desc=捕获 https://chatgpt.com/api/auth/session 响应后，通过通知动作复制 accessToken 到剪切板；不会在日志/通知正文显示完整 Token。
+#!name=ChatGPT AccessToken 捕获（最小影响版）
+#!desc=仅对 chatgpt.com 的 /api/auth/session 响应执行脚本，用于复制 accessToken；避免对 ChatGPT 其他请求挂载调试脚本。
 #!system=ios
 
 [MITM]
-hostname = %APPEND% chatgpt.com, ab.chatgpt.com, cdn.oaistatic.com
+hostname = %APPEND% chatgpt.com
 
 [Script]
-ChatGPT_请求命中调试 = type=http-request,pattern=^https:\/\/chatgpt\.com\/,script-path=https://raw.githubusercontent.com/8310001/surge/main/modules/chatgpt-session/chatgpt_request_debug.js,timeout=10,debug=true
-ChatGPT_AccessToken_复制 = type=http-response,pattern=^https:\/\/chatgpt\.com\/api\/auth\/session(?:\?.*)?$,requires-body=true,max-size=1048576,script-path=https://raw.githubusercontent.com/8310001/surge/main/modules/chatgpt-session/chatgpt_session_log.js,timeout=10,debug=true
+ChatGPT_AccessToken_复制 = type=http-response,pattern=^https:\/\/chatgpt\.com\/api\/auth\/session(?:\?.*)?$,requires-body=true,max-size=262144,script-path=https://raw.githubusercontent.com/8310001/surge/main/modules/chatgpt-session/chatgpt_session_log.js,timeout=10,debug=true
