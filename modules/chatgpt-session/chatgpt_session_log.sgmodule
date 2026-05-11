@@ -1,9 +1,10 @@
-#!name=ChatGPT Session 日志捕获
-#!desc=访问 https://chatgpt.com/api/auth/session 时打印概要日志并发送通知；不保存完整返回、不复制 Token。
+#!name=ChatGPT Session 调试捕获
+#!desc=同时记录 ChatGPT 请求命中与 /api/auth/session 响应概要；用于排查没日志问题；不保存完整返回、不复制 Token。
 #!system=ios
 
 [MITM]
-hostname = %APPEND% chatgpt.com
+hostname = %APPEND% chatgpt.com, ab.chatgpt.com, cdn.oaistatic.com
 
 [Script]
-ChatGPT_Session_日志 = type=http-response,pattern=^https:\/\/chatgpt\.com\/api\/auth\/session,requires-body=true,max-size=1048576,script-path=https://raw.githubusercontent.com/8310001/surge/main/modules/chatgpt-session/chatgpt_session_log.js,timeout=10
+ChatGPT_请求命中调试 = type=http-request,pattern=^https:\/\/chatgpt\.com\/,script-path=https://raw.githubusercontent.com/8310001/surge/main/modules/chatgpt-session/chatgpt_request_debug.js,timeout=10
+ChatGPT_Session_响应日志 = type=http-response,pattern=^https:\/\/chatgpt\.com\/api\/auth\/session(?:\?.*)?$,requires-body=true,max-size=1048576,script-path=https://raw.githubusercontent.com/8310001/surge/main/modules/chatgpt-session/chatgpt_session_log.js,timeout=10

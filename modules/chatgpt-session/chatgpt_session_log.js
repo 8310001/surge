@@ -18,11 +18,15 @@ function mask(value) {
   return value.slice(0, 6) + '...' + value.slice(-4);
 }
 
-const body = typeof $response !== 'undefined' ? $response.body : '';
+const requestUrl = typeof $request !== 'undefined' && $request ? ($request.url || '') : '';
+const status = typeof $response !== 'undefined' && $response ? ($response.status || 'unknown') : 'no_response';
+const body = typeof $response !== 'undefined' && $response ? ($response.body || '') : '';
 const data = safeJsonParse(body || '');
 
+console.log(`[ChatGPT Session] response hit url=${requestUrl} status=${status} body_length=${body.length}`);
+
 let title = 'ChatGPT Session 捕获';
-let subtitle = '已命中 /api/auth/session';
+let subtitle = `HTTP ${status}`;
 let message = '';
 
 if (data) {
@@ -33,6 +37,7 @@ if (data) {
   const hasUser = Boolean(data.user);
 
   message = [
+    `url: ${requestUrl}`,
     `account: ${account}`,
     `user_id: ${mask(user.id || '')}`,
     `expires: ${expires || 'unknown'}`,
@@ -43,8 +48,13 @@ if (data) {
 
   console.log(`[ChatGPT Session] ${message}`);
 } else {
-  subtitle = '响应不是有效 JSON 或 body 为空';
-  message = `status: ${$response && $response.status ? $response.status : 'unknown'}`;
+  subtitle = 'Session 响应不是有效 JSON 或 body 为空';
+  message = [
+    `url: ${requestUrl}`,
+    `status: ${status}`,
+    `body_length: ${body.length}`,
+    `body_preview: ${String(body || '').slice(0, 200)}`
+  ].join('\n');
   console.log(`[ChatGPT Session] parse failed: ${message}`);
 }
 
