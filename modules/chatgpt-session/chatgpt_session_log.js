@@ -1,7 +1,8 @@
 /*
- * Surge 脚本：ChatGPT Session 日志捕获
- * 用途：命中 https://chatgpt.com/api/auth/session 响应时，打印概要日志并发送通知。
- * 安全说明：不会保存完整 body，不会复制 accessToken/session token。
+ * Surge 脚本：ChatGPT AccessToken 捕获
+ * 用途：命中 https://chatgpt.com/api/auth/session 响应时，通过通知动作复制 accessToken 到剪切板。
+ * 安全说明：不会在日志或通知正文显示完整 accessToken。
+ * 说明：Surge 的 clipboard 动作需要用户点击通知并确认复制。
  */
 
 function safeJsonParse(text) {
@@ -14,8 +15,8 @@ function safeJsonParse(text) {
 
 function mask(value) {
   if (!value || typeof value !== 'string') return value;
-  if (value.length <= 12) return value.slice(0, 3) + '***';
-  return value.slice(0, 6) + '...' + value.slice(-4);
+  if (value.length <= 16) return value.slice(0, 4) + '***';
+  return value.slice(0, 8) + '...' + value.slice(-6);
 }
 
 const requestUrl = typeof $request !== 'undefined' && $request ? ($request.url || '') : '';
@@ -23,30 +24,43 @@ const status = typeof $response !== 'undefined' && $response ? ($response.status
 const body = typeof $response !== 'undefined' && $response ? ($response.body || '') : '';
 const data = safeJsonParse(body || '');
 
-console.log(`[ChatGPT Session] response hit url=${requestUrl} status=${status} body_length=${body.length}`);
+console.log(`[ChatGPT AccessToken] response hit url=${requestUrl} status=${status} body_length=${body.length}`);
 
-let title = 'ChatGPT Session 捕获';
+let title = 'ChatGPT AccessToken 捕获';
 let subtitle = `HTTP ${status}`;
 let message = '';
+let options = { sound: true };
 
-if (data) {
+if (data && data.accessToken) {
   const user = data.user || {};
-  const expires = data.expires || data.accessTokenExpires || '';
   const account = user.email || user.name || user.id || 'unknown';
-  const hasAccessToken = Boolean(data.accessToken);
-  const hasUser = Boolean(data.user);
+  const expires = data.expires || data.accessTokenExpires || 'unknown';
+  const token = String(data.accessToken);
 
+  subtitle = '捕获成功，点通知复制 Token';
   message = [
-    `url: ${requestUrl}`,
     `account: ${account}`,
-    `user_id: ${mask(user.id || '')}`,
-    `expires: ${expires || 'unknown'}`,
-    `has_user: ${hasUser}`,
-    `has_access_token: ${hasAccessToken}`,
-    `keys: ${Object.keys(data).join(', ')}`
+    `expires: ${expires}`,
+    `token: ${mask(token)}`,
+    `length: ${token.length}`,
+    '点击本通知后按确认，即可复制 accessToken 到剪切板。'
   ].join('\n');
 
-  console.log(`[ChatGPT Session] ${message}`);
+  options = {
+    action: 'clipboard',
+    text: token,
+    sound: true
+  };
+
+  console.log(`[ChatGPT AccessToken] captured account=${account} expires=${expires} token=${mask(token)} length=${token.length}`);
+} else if (data) {
+  subtitle = '响应中没有 accessToken';
+  message = [
+    `url: ${requestUrl}`,
+    `status: ${status}`,
+    `keys: ${Object.keys(data).join(', ')}`
+  ].join('\n');
+  console.log(`[ChatGPT AccessToken] no accessToken keys=${Object.keys(data).join(', ')}`);
 } else {
   subtitle = 'Session 响应不是有效 JSON 或 body 为空';
   message = [
@@ -55,8 +69,8 @@ if (data) {
     `body_length: ${body.length}`,
     `body_preview: ${String(body || '').slice(0, 200)}`
   ].join('\n');
-  console.log(`[ChatGPT Session] parse failed: ${message}`);
+  console.log(`[ChatGPT AccessToken] parse failed status=${status} body_length=${body.length}`);
 }
 
-$notification.post(title, subtitle, message);
+$notification.post(title, subtitle, message, options);
 $done({});
